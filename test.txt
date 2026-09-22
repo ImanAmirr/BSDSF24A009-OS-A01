@@ -1,0 +1,4 @@
+Hello world
+I like C programming
+Hello again
+Goodbye
