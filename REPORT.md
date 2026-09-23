@@ -135,3 +135,90 @@ For example, functions such as `mystrlen`, `mystrcpy`, `mystrncpy`, `mystrcat`, 
 This shows that static linking copies the required library code into the final executable during the linking process. Therefore, `client_static` contains the library code itself and does not need `libmyutils.a` at runtime.
 
 This is different from dynamic linking, where the executable depends on a separate `.so` shared library at runtime.
+
+# Feature 4 — Dynamic/Shared Library
+
+### 1. What is Position-Independent Code (`-fPIC`) and why is it a fundamental requirement for creating shared libraries?
+
+Position-Independent Code (PIC) is code that can run correctly regardless of where it is loaded into memory.
+
+The `-fPIC` option tells GCC to generate position-independent code:
+
+```bash
+gcc -Wall -fPIC -Iinclude -c src/mystrfunctions.c -o obj/mystrfunctions.o
+```
+
+Shared libraries can be loaded into different memory addresses by different programs. Therefore, the code inside a shared library should not depend on a fixed memory address.
+
+We used `-fPIC` when compiling our source files before creating:
+
+```text
+lib/libmyutils.so
+```
+
+It allows the shared library to be loaded and used by the executable at runtime.
+
+---
+
+### 2. Explain the difference in file size between your static and dynamic clients. Why does this difference exist?
+
+In our project, the sizes were:
+
+```text
+client_static   = 17K
+client_dynamic  = 17K
+libmyutils.a    = 5.4K
+libmyutils.so   = 16K
+```
+
+The two client executables happened to have approximately the same displayed size, even though they use different linking methods.
+
+With **static linking**, the required library code is copied into `client_static`. Therefore, the executable contains the functions from the static library.
+
+With **dynamic linking**, the library code is kept separately in `libmyutils.so`. The `client_dynamic` executable contains references to the shared library rather than copying all of its code into the executable.
+
+The exact file sizes can vary because of compiler options, ELF metadata, alignment, symbol tables, and other factors. Therefore, the displayed `17K` size of both clients does not mean that static and dynamic linking work in the same way.
+
+---
+
+### 3. What is the `LD_LIBRARY_PATH` environment variable? Why was it necessary to set it for your program to run, and what does this tell you about the responsibilities of the operating system's dynamic loader?
+
+`LD_LIBRARY_PATH` is an environment variable that tells the Linux dynamic loader additional directories where it should search for shared libraries.
+
+Initially, when we ran:
+
+```bash
+./bin/client_dynamic
+```
+
+the program produced:
+
+```text
+error while loading shared libraries: libmyutils.so:
+cannot open shared object file: No such file or directory
+```
+
+This happened because `libmyutils.so` was stored in our project's `lib/` directory, which was not one of the loader's default library search locations.
+
+We then used:
+
+```bash
+export LD_LIBRARY_PATH=$PWD/lib:$LD_LIBRARY_PATH
+```
+
+After setting this variable, the program was able to find and load `libmyutils.so`.
+
+We also verified the library being used with:
+
+```bash
+ldd bin/client_dynamic
+```
+
+which showed:
+
+```text
+libmyutils.so => /home/imanamir/BSDSF24A009-OS-A01/lib/libmyutils.so
+```
+
+This demonstrates that the dynamic loader is responsible for locating and loading the required shared libraries when the program starts. The executable does not automatically search every directory on the system, so the library must either be installed in a known library location or its location must be provided through mechanisms such as `LD_LIBRARY_PATH`.
+
