@@ -35,5 +35,11 @@ static: $(STATIC_TARGET)
 
 dynamic: $(DYNAMIC_TARGET)
 
+install:
+	sudo install -m 755 $(TARGET) /usr/local/bin/client
+	sudo install -d /usr/local/share/man/man3
+	sudo install -m 644 man/man3/*.3 /usr/local/share/man/man3/
+	sudo mandb
+
 clean:
 	rm -f obj/*.o $(TARGET) $(STATIC_TARGET) $(DYNAMIC_TARGET) $(LIB) $(SHARED_LIB)
